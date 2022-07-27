@@ -1,10 +1,10 @@
 import streamlit as st
-from gsheetsdb import connect
 
+page_names_to_funcs = {
+    "—": "",
+    "清关材料制作": "",
+    "海关码查询": "",
+    "DataFrame Demo": ""
+}
 
-# Create a connection object.
-conn = connect()
-
-sheet_url = st.secrets["public_gsheets_url"]
-rows = conn.execute(sheet_url, headers=1)
-st.write(sheet_url)
+demo_name = st.sidebar.selectbox("SMDG精品服务", page_names_to_funcs.keys())
