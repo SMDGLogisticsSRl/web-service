@@ -8,3 +8,4 @@ page_names_to_funcs = {
 }
 
 demo_name = st.sidebar.selectbox("SMDG精品服务", page_names_to_funcs.keys())
+st.write("hello")
