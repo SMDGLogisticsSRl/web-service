@@ -4,17 +4,15 @@ def intro():
     import streamlit as st
 
     st.write("# 欢迎使用SMDG线上服务 👋")
-    st.sidebar.success("Select a demo above.")
+    st.sidebar.success("请选择您的服务")
 
     st.markdown(
         """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
+        SMDG Logistics SRL 是一家位于比利时列日，专注于中欧货运服务
 
-        **👈 Select a demo from the dropdown on the left** to see some examples
-        of what Streamlit can do!
+        **👈 从左边下拉框，请选择您需要的服务** 去体验SMDG智能化服务
 
-        ### Want to learn more?
+        ### 想要了解更多?
 
         - Check out [streamlit.io](https://streamlit.io)
         - Jump into our [documentation](https://docs.streamlit.io)
