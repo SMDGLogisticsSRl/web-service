@@ -217,11 +217,11 @@ def data_frame_demo():
         )
 
 page_names_to_funcs = {
-    "—": intro,
-    "Plotting Demo": plotting_demo,
-    "Mapping Demo": mapping_demo,
-    "DataFrame Demo": data_frame_demo
+    "公司介绍": intro,
+    "清关资料": plotting_demo,
+    "海关码": mapping_demo,
+    "空运提货": data_frame_demo
 }
 
-demo_name = st.sidebar.selectbox("Choose a demo", page_names_to_funcs.keys())
+demo_name = st.sidebar.selectbox("请选择服务", page_names_to_funcs.keys())
 page_names_to_funcs[demo_name]()
