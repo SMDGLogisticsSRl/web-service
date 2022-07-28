@@ -1,2 +1,3 @@
 gsheetsdb
 openpyxl
+xlrd
