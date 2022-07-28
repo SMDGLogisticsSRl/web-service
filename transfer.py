@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-
+dataFrameSerialization = "legacy"
 
 def intro():
     import streamlit as st
@@ -181,8 +181,12 @@ def custom_invoice():
 
                     elif option == "Alando":
                         st.write(" - ###### 开始生成清关材料")
-                        url = "https://github.com/SMDGLogisticsSRl/web-service/blob/main/template.xlsx"
-                        datainvoice = pd.read_excel(url)
+                        url = "https://github.com/SMDGLogisticsSRl/web-service/raw/main/template.xlsx"
+                        writer_1 = pd.ExcelFile(url)
+                        c = writer_1.sheet_names
+                        datainvoice = writer_1.parse(c[0])
+
+
 
                         st.write(datainvoice)
 
