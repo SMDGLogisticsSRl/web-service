@@ -22,8 +22,8 @@ def intro():
 
         ### 联系我们
 
-        - 邮箱 [info@smdg.eu](info@smdg.eu)
-        - 地址 [Rue Louis Bleriot 5A 4460 Bierset Belgiumt]
+        - 邮箱 : info@smdg.eu
+        - 地址 : Rue Louis Bleriot 5A 4460 Bierset Belgiumt
          """)
 
 def mapping_demo():
