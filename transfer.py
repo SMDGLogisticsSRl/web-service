@@ -180,7 +180,7 @@ def custom_invoice():
 
                     elif option == "Alando":
                         st.write(" - ###### 开始生成清关材料")
-                        url = "https://github.com/SMDGLogisticsSRl/web-service/blob/7ee56f8fe2045ede96778d6aa95d6cd0af922388/template.xlsx"
+                        url = "template.xlsx"
                         datainvoice = pd.read_excel(url)
 
                         st.write(datainvoice)
