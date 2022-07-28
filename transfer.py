@@ -4,7 +4,7 @@ def intro():
     import streamlit as st
 
     st.write("# 欢迎使用SMDG线上服务 👋")
-    st.sidebar.success("请选择您的服务")
+    st.sidebar.success("请选择极致服务")
 
     st.markdown(
         """
