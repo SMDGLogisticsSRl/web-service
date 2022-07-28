@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import template
+import template.xlsx
 
 
 def intro():
