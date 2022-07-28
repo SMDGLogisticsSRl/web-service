@@ -20,13 +20,10 @@ def intro():
         - EORI有效性查询 [Eori Validation](https://ec.europa.eu/taxation_customs/dds2/eos/eori_validation.jsp)
 
 
-        ### See more complex demos
+        ### 联系我们
 
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+        - 邮箱 [info@smdg.eu](info@smdg.eu)
+        - 地址 [Rue Louis Bleriot 5A 4460 Bierset Belgiumt])
 
 def mapping_demo():
     import streamlit as st
