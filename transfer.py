@@ -8,16 +8,17 @@ def intro():
 
     st.markdown(
         """
-        SMDG Logistics SRL 是一家位于比利时列日，专注于中欧货运服务
+        SMDG Logistics SRL 是一家位于比利时列日，专注于中欧货运服务的跨境物流公司
 
-        **👈 从左边下拉框，请选择您需要的服务** 去体验SMDG智能化服务
+        **👈 从左边下拉框，请选择您需要的服务** 去体验SMDG极致的智能化服务
 
         ### 想要了解更多?
 
-        - 欧盟海关网站 [Tarbel](https://eservices.minfin.fgov.be/extTariffBrowser/browseNomen.xhtml?suffix=80&country=&lang=EN&page=1&date=20220727)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
+        - 欧盟海关码查询网站  [Tarbel](https://eservices.minfin.fgov.be/extTariffBrowser/browseNomen.xhtml?suffix=80&country=&lang=EN&page=1&date=20220727)
+        - 欧盟进出口数据查询网站 [Import - Export Statistics](https://trade.ec.europa.eu/access-to-markets/en/statistics)
+        - VAT有效性查询 [VIES VAT Validation](https://ec.europa.eu/taxation_customs/vies/)
+        - EORI有效性查询 [Eori Validation](https://ec.europa.eu/taxation_customs/dds2/eos/eori_validation.jsp)
+
 
         ### See more complex demos
 
