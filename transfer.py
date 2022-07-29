@@ -13,7 +13,6 @@ from shutil import copyfile
 import os
 from openpyxl import load_workbook, Workbook
 from openpyxl.cell import MergedCell
-from tkinter import filedialog
 import pandas as pd
 from openpyxl.styles import Alignment
 from openpyxl.styles.borders import Border, Side
@@ -231,6 +230,36 @@ def custom_invoice():
                             #建立分单文件夹
 
                             wb = Workbook()
+                            ws = wb.active
+                            ws['A1'] = 42
+                            ws.append([1, 2, 3])
+                            ws['A2'] = 56
+                            wb.save("sample.xlsx")
+
+                            def get_binary_file_downloader_html(bin_file, file_label='File'):
+                                with open(file_path, 'rb') as f:
+                                    data = f.read()
+                                bin_str = base64.b64encode(data).decode()
+                                href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">点击下载 {file_label}</a>'
+                                return href
+                            file_path = 'sample.xlsx'
+                            file_label = '测试文件'
+                            st.markdown(get_binary_file_downloader_html(file_path, file_label),
+                                        unsafe_allow_html=True)
+                            
+                            
+                            zip_file = zipfile.ZipFile(r'C:\Users\fuqin\Desktop\file_name.zip', 'w')
+                            zip_file.write('sample.xlsx')
+
+                            with open("file_name.zip", "rb") as fp:
+                                btn = st.download_button(
+                                    label="Download ZIP",
+                                    data=fp,
+                                    file_name="file_name.zip",
+                                    mime="application/zip"
+                                )
+
+
 
 
 
