@@ -1,3 +1,4 @@
 gsheetsdb
 openpyxl
 xlrd
+xlsxwriter
