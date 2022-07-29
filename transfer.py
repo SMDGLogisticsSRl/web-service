@@ -523,20 +523,6 @@ def custom_invoice():
                                 file_label = begate_name
                                 st.markdown(get_binary_file_downloader_html(file_path, file_label),
                                             unsafe_allow_html=True)
-                                zip_file_name = str(lta) + 'CI+PL+Manifest.zip'
-                                zip_file = zipfile.ZipFile(zip_file_name, 'w')
-                                zip_file.write(target)
-                                zip_file.write(begate_name)
-
-
-                                with open(zip_file_name, "rb") as f:
-                                    bytes_read = f.read()
-                                    b64 = base64.b64encode(bytes_read).decode()
-                                    href = f'<a href="data:file/zip;base64,{b64}" download=\'{zip_file_name}.zip\'>\ ' \
-                                           f'Click to download\ </a> '
-                                    st.markdown(href, unsafe_allow_html=True)
-
-
 
                             dic_resume = {"提单": "共计",
                                           "分单": "",
@@ -547,18 +533,13 @@ def custom_invoice():
                                           "海关码数量": "",
                                           "申报金额": datainvoice["申报总价"].sum()}
                             dic_lta.append(dic_resume)
-
                             df_lta = pd.DataFrame(list(dic_lta))
-                            df_lta_name = lta + " 税号信息总结.xlsx"
-                            zip_file.write(begate_name)
-
-                            with open(zip_file_name, "rb") as f:
-                                bytes_read = f.read()
-                                b64 = base64.b64encode(bytes_read).decode()
-                                href = f'<a href="data:file/zip;base64,{b64}" download=\'{zip_file_name}.zip\'>\ ' \
-                                       f'Click to download\ </a> '
-                            st.markdown(href, unsafe_allow_html=True)
-
+                            df_lta_name =  lta + " 税号信息总结.xlsx"
+                            df_lta.to_excel(df_lta_name, sheet_name='税号信息总结', index=False)
+                            file_path = df_lta_name
+                            file_label = df_lta_name
+                            st.markdown(get_binary_file_downloader_html(file_path, file_label),
+                                        unsafe_allow_html=True)
 
 def Merge_cells(ws, target_list, start_row, col):  # 合并单元格
     '''
@@ -584,9 +565,7 @@ def mapping_demo():
     import streamlit as st
     import pandas as pd
     import pydeck as pdk
-
     from urllib.error import URLError
-
     st.markdown("生成" & f"# {list(page_names_to_funcs.keys())[2]}")
     st.write(
         """ 在这里您可以通过上传清关资料线上生成相关的CI和PL """
@@ -673,68 +652,33 @@ def mapping_demo():
         )
 
 
-def data_frame_demo():
+def air_pick_up():
     import streamlit as st
     import pandas as pd
     import altair as alt
 
     from urllib.error import URLError
 
-    st.markdown(f"# {list(page_names_to_funcs.keys())[3]}")
+    st.markdown(f"# SMDG {list(page_names_to_funcs.keys())[3]}业务")
+
     st.write(
         """
-        This demo shows how to use `st.write` to visualize Pandas DataFrames.
-(Data courtesy of the [UN Data Explorer](http://data.un.org/Explorer.aspx).)
-"""
-    )
+        **此模板为方便周末提货使用**
+        \n 1. 发邮件给指定海关通知提货
+             \n 2. 卡车公司订单
+             \n 3. 货站信息""")
+    options = st.selectbox("请选择服务", ["","Transfert", "Truck Order", "Loading Instruction"])
+    if options == "Transfert":
+        st.write("准备邮件给海关")
 
-    @st.cache
-    def get_UN_data():
-        AWS_BUCKET_URL = "http://streamlit-demo-data.s3-us-west-2.amazonaws.com"
-        df = pd.read_csv(AWS_BUCKET_URL + "/agri.csv.gz")
-        return df.set_index("Region")
 
-    try:
-        df = get_UN_data()
-        countries = st.multiselect(
-            "Choose countries", list(df.index), ["China", "United States of America"]
-        )
-        if not countries:
-            st.error("Please select at least one country.")
-        else:
-            data = df.loc[countries]
-            data /= 1000000.0
-            st.write("### Gross Agricultural Production ($B)", data.sort_index())
-
-            data = data.T.reset_index()
-            data = pd.melt(data, id_vars=["index"]).rename(
-                columns={"index": "year", "value": "Gross Agricultural Product ($B)"}
-            )
-            chart = (
-                alt.Chart(data)
-                    .mark_area(opacity=0.3)
-                    .encode(
-                    x="year:T",
-                    y=alt.Y("Gross Agricultural Product ($B):Q", stack=None),
-                    color="Region:N",
-                )
-            )
-            st.altair_chart(chart, use_container_width=True)
-    except URLError as e:
-        st.error(
-            """
-            **This demo requires internet access.**
-            Connection error: %s
-        """
-            % e.reason
-        )
 
 
 page_names_to_funcs = {
     "公司介绍": intro,
     "清关资料": custom_invoice,
     "海关码": mapping_demo,
-    "空运提货": data_frame_demo
+    "空运提货": air_pick_up
 }
 
 demo_name = st.sidebar.selectbox("请选择服务", page_names_to_funcs.keys())
