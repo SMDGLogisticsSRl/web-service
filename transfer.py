@@ -21,6 +21,14 @@ from hashlib import md5
 import numpy as np
 from PIL import Image
 import xlsxwriter
+import email.mime.multipart
+from smtplib import SMTP_SSL
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
+
+import pandas as pd
+
 import warnings
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -670,7 +678,110 @@ def air_pick_up():
     options = st.selectbox("请选择服务", ["","Transfert", "Truck Order", "Loading Instruction"])
     if options == "Transfert":
         st.write("准备邮件给海关")
+        col1, col2, col3 = st.columns([5, 5, 5])
+        with col1:
+            handler = st.selectbox("选择货站",('','AVIA', 'SWP', 'WFS', 'LACHS', 'BAS'))
+            lta = st.text_input("输入提单号：")
+            pcs = st.text_input("输入包裹数量：")
+        with col2:
+            date_noa_1 = st.date_input("输入NOA日期：")
+            date_pick_up_1 = st.date_input("输入提货日期：")
+            kg = st.text_input("输入包裹重量：")
+        with col3:
+            date_noa_2 = st.time_input("输入NOA时间：")
+            date_pick_up_2 = st.time_input("输入提货时间：")
+        if st.button("准备邮件"):
+            date_noa  = str(date_noa_1) + " " + str(date_noa_1)
+            date_pick_up = str(date_pick_up_1) + " " + str(date_pick_up_2)
+            def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):
+                dfges = pd.DataFrame([["MTD De Depart", handler],
+                                      ["MTD D'Arrivee", date_noa],
+                                      ["Representant douane", "Alando"],
+                                      ["La date du jour (du transfert)", date_pick_up],
+                                      ["La date de MDT (Handler de départ)", date_pick_up],
+                                      ["Lieu de Presentation", "Alando"],
+                                      ["Le numéro de colis (tracking)", lta],
+                                      ["L’identification de la marchandise", "/"],
+                                      ["Le colisage (nombre de colis)", str(pcs) + " PCS"],
+                                      ["Le kG", str(kg) + " KG"]],
+                                     columns=['DESCRIPTION', 'INFORMATION'])
+                return dfges
+            dfges = get_data(handler, date_noa, date_pick_up, lta, pcs, kg)
+            html = f"""
+                <!DOCTYPE html>
+                <head>
+                <style>
+                tr:nth-child(even) {{
+                background-color: #f2f2f2;
+                }}
+                </style>
+                </head>
+                <td>
+                Bonjour,Madame, Monsieur:
+                </td>
+                <ul>
+                L’envoi fera objet d’un transfert manifest .
+                </ul>
+                <body>
+                {dfges.to_html(index=False, escape=False)}
+                <p>
+                l'Equipe de SMDG Logistics SRL  .
+                </p>
+                <li>
+                Mes salutations distinguées 
+                </li>   
+                </body>
+                </html>"""
+            html_msg = html
+            msg = email.mime.multipart.MIMEMultipart()
+            Subject = 'Notification de transfert'
+            sender_show = 'fuqing.yuan@smdg.eu'
+            recipient_show = 'fuqing.yuan.univ@gmail.com'
+            cc_show = 'fuqing.yuan.univ@gmail.com'
+            to_addrs = 'fuqing.yuan@smdg.eu'
+            user = 'fuqing.yuan@smdg.eu'
+            password = 'Beijing2008'
+            msg["Subject"] = Subject
+            # 发件人显示，不起实际作用
+            msg["from"] = sender_show
+            # 收件人显示，不起实际作用
+            msg["to"] = to_addrs
+            # 抄送人显示，不起实际作用
+            msg["Cc"] = cc_show
+            msg.attach(MIMEText(html_msg, "html", "utf-8"))
+            st.write("查看邮件内容模板")
+            st.write("收件人：",to_addrs)
+            st.write(dfges)
+            if st.button("发送"):
+                with SMTP_SSL(host="smtp.exmail.qq.com", port=465) as smtp:
+                    smtp.login(user=user, password=password)
+                    smtp.sendmail(from_addr=user, to_addrs=to_addrs.split(','), msg=msg.as_string())
+                st.write("邮件已发送")
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    elif options == "Truck Order":
+        st.write("发邮件卡车订单")
+    elif options == "Loading Instruction":
+        st.write("发邮件卡车订单")
 
 
 
