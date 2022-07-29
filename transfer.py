@@ -1,14 +1,40 @@
+import base64
+import zipfile
+from openpyxl import load_workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.chart import PieChart, Reference, Series
+import pandas as pd
 import streamlit as st
 import pandas as pd
-
-dataFrameSerialization = "legacy"
+import pandas as pd
+from io import BytesIO
+import streamlit as st
+from shutil import copyfile
+import os
+from openpyxl import load_workbook, Workbook
+from openpyxl.cell import MergedCell
+from tkinter import filedialog
+import pandas as pd
+from openpyxl.styles import Alignment
+from openpyxl.styles.borders import Border, Side
+import requests
+import time
+from bs4 import BeautifulSoup
+from datetime import date
+import requests
+import random
+import json
+from hashlib import md5
+import numpy as np
+from PIL import Image
+import xlsxwriter
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 def intro():
     import streamlit as st
-
     st.write("# 欢迎使用SMDG线上服务 👋")
     st.sidebar.success("请选择极致服务")
-
     st.markdown(
         """
         SMDG Logistics SRL 是一家位于比利时列日，专注于中欧货运服务的跨境物流公司 
@@ -35,7 +61,6 @@ def custom_invoice():
     import streamlit as st
     import time
     import numpy as np
-
     st.markdown(f"# 智能生成{list(page_names_to_funcs.keys())[1]}")
     st.write(
         """ 在这里您可以通过上传清关资料线上生成相关的CI和PL """)
@@ -46,7 +71,6 @@ def custom_invoice():
     else:
         st.write("已上传发票抬头信息 : ", invoice_tete.name)
         datasender = pd.read_excel(invoice_tete)
-
         hide_table_row_index = """
                     <style>
                     thead tr th:first-child {display:none}
@@ -59,7 +83,6 @@ def custom_invoice():
         col1, col2 = st.columns([2, 9.5])
         with col1:
             option = st.number_input("Choose the sender:", min_value=0, max_value=len(datasender), key=int)
-
         with col2:
             if option <= 0 or option >= len(datasender) + 1:
                 pass
@@ -178,17 +201,83 @@ def custom_invoice():
                         st.write(" - 清关材料完善中...")
                         st.write(" - :pray:为带来不便, 深感抱歉")
 
-
                     elif option == "Alando":
                         st.write(" - ###### 开始生成清关材料")
-                        url = "https://github.com/SMDGLogisticsSRl/web-service/raw/main/template.xlsx"
-                        writer_1 = pd.ExcelFile(url)
-                        c = writer_1.sheet_names
-                        datainvoice = writer_1.parse(c[0])
+                        # 生成alando材料模板
+                        dic_lta = []
+                        a = 0
+                        for vat in vats:
+                            a = a + 1
+                            datainvoice_vat = datainvoice.loc[datainvoice['VAT号'] == vat]
+                            # 获取交货条款;交货城市;清关方式;收件人国家
+                            incoterme = list(set(datainvoice_vat["交货条款"].tolist()))[0]
+                            incoterme_city = list(set(datainvoice_vat["交货城市"].tolist()))[0]
+                            delivery_country = list(set(datainvoice_vat["收件人国家"].tolist()))[0]
+                            code_regime = list(set(datainvoice_vat["清关方式"].tolist()))[0]
+                            qty_carton = len(set(datainvoice_vat["货箱编号"].tolist()))
+                            exporter_chi = "---"
+                            exporter_eng = Nameofsender
+                            ref_number = lta + " - " + str(a)
+                            invoice_number = "HBL - " + lta + " - " + str(a)
+                            importer = datainvoice_vat["收件人"].tolist()[0]
+                            EORI = datainvoice_vat["EORI"].tolist()[0]
+                            adresse = datainvoice_vat["地址"].tolist()[0]
+                            code_postal = str(datainvoice_vat["邮编"].tolist()[0]).split(".")[0]
+                            city = datainvoice_vat["城市"].tolist()[0]
+                            county_2_chiffre = datainvoice_vat["国家代码"].tolist()[0]
+                            county_complet = datainvoice_vat["国家全称"].tolist()[0]
+                            adresse_importer_complet = adresse + " ," + str(code_postal) + " ," + city + " ," + str(county_complet)
+
+                            #建立分单文件夹
+
+                            wb = Workbook()
+                            ws = wb.active
+                            ws['A1'] = 42
+                            ws.append([1, 2, 3])
+                            ws['A2'] = 56
+                            wb.save("sample.xlsx")
+
+                            def get_binary_file_downloader_html(bin_file, file_label='File'):
+                                with open(file_path, 'rb') as f:
+                                    data = f.read()
+                                bin_str = base64.b64encode(data).decode()
+                                href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">点击下载 {file_label}</a>'
+                                return href
+                            file_path = 'sample.xlsx'
+                            file_label = '测试文件'
+                            st.markdown(get_binary_file_downloader_html(file_path, file_label),
+                                        unsafe_allow_html=True)
+
+
+                            zip_file = zipfile.ZipFile(r'C:\Users\fuqin\Desktop\file_name.zip', 'w')
+                            zip_file.write('sample.xlsx')
+
+                            with open("file_name.zip", "rb") as fp:
+                                btn = st.download_button(
+                                    label="Download ZIP",
+                                    data=fp,
+                                    file_name="file_name.zip",
+                                    mime="application/zip"
+                                )
 
 
 
-                        st.write(datainvoice)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def mapping_demo():
