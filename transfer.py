@@ -8,7 +8,6 @@ import streamlit as st
 from shutil import copyfile
 import os
 from openpyxl import load_workbook, Workbook
-from openpyxl.cel import MergedCell
 import pandas as pd
 from openpyxl.styles import Alignment
 from openpyxl.styles.borders import Border, Side
