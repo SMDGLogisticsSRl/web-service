@@ -690,10 +690,11 @@ def air_pick_up():
         with col3:
             date_noa_2 = st.time_input("输入NOA时间：")
             date_pick_up_2 = st.time_input("输入提货时间：")
-        if st.button("准备邮件"):
-            date_noa  = str(date_noa_1) + " " + str(date_noa_1)
+        if st.button("准备并发送邮件"):
+            date_noa  = str(date_noa_1) + " " + str(date_noa_2)
             date_pick_up = str(date_pick_up_1) + " " + str(date_pick_up_2)
             def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):
+                global dfges
                 dfges = pd.DataFrame([["MTD De Depart", handler],
                                       ["MTD D'Arrivee", date_noa],
                                       ["Representant douane", "Alando"],
@@ -707,41 +708,46 @@ def air_pick_up():
                                      columns=['DESCRIPTION', 'INFORMATION'])
                 return dfges
             dfges = get_data(handler, date_noa, date_pick_up, lta, pcs, kg)
+            st.write("查看邮件内容模板")
+            to_addrs = "fuqing.yuan@smdg.eu"
+            title="< N°%s > notification d’entrée en installation de stockage temporaire (TSD)(%s - SMDG)_LTA: %s " \
+                  "TRANSFERT" %("00007",handler,lta)
+            st.write("收件人：",to_addrs)
+            st.write("邮件标题：", title)
+            st.write(dfges)
+
             html = f"""
-                <!DOCTYPE html>
-                <head>
-                <style>
-                tr:nth-child(even) {{
-                background-color: #f2f2f2;
-                }}
-                </style>
-                </head>
-                <td>
-                Bonjour,Madame, Monsieur:
-                </td>
-                <ul>
-                L’envoi fera objet d’un transfert manifest .
-                </ul>
-                <body>
-                {dfges.to_html(index=False, escape=False)}
-                <p>
-                l'Equipe de SMDG Logistics SRL  .
-                </p>
-                <li>
-                Mes salutations distinguées 
-                </li>   
-                </body>
-                </html>"""
+                           <!DOCTYPE html>
+                           <head>
+                           <style>
+                           tr:nth-child(even) {{
+                           background-color: #f2f2f2;
+                           }}
+                           </style>
+                           </head>
+                           <td>
+                           Bonjour,Madame, Monsieur:
+                           </td>
+                           <ul>
+                           L’envoi fera objet d’un transfert manifest .
+                           </ul>
+                           <body>
+                           {dfges.to_html(index=False, escape=False)}
+                           <p>
+                           l'Equipe de SMDG Logistics SRL  .
+                           </p>
+                           <li>
+                           Mes salutations distinguées 
+                           </li>   
+                           </body>
+                           </html>"""
             html_msg = html
             msg = email.mime.multipart.MIMEMultipart()
-            Subject = 'Notification de transfert'
             sender_show = 'fuqing.yuan@smdg.eu'
             recipient_show = 'fuqing.yuan.univ@gmail.com'
             cc_show = 'fuqing.yuan.univ@gmail.com'
             to_addrs = 'fuqing.yuan@smdg.eu'
-            user = 'fuqing.yuan@smdg.eu'
-            password = 'Beijing2008'
-            msg["Subject"] = Subject
+            msg["Subject"] = title
             # 发件人显示，不起实际作用
             msg["from"] = sender_show
             # 收件人显示，不起实际作用
@@ -749,14 +755,13 @@ def air_pick_up():
             # 抄送人显示，不起实际作用
             msg["Cc"] = cc_show
             msg.attach(MIMEText(html_msg, "html", "utf-8"))
-            st.write("查看邮件内容模板")
-            st.write("收件人：",to_addrs)
-            st.write(dfges)
-            if st.button("发送"):
-                with SMTP_SSL(host="smtp.exmail.qq.com", port=465) as smtp:
-                    smtp.login(user=user, password=password)
-                    smtp.sendmail(from_addr=user, to_addrs=to_addrs.split(','), msg=msg.as_string())
-                st.write("邮件已发送")
+            user = 'fuqing.yuan@smdg.eu'
+            password = 'Beijing2008'
+            with SMTP_SSL(host="smtp.exmail.qq.com", port=465) as smtp:
+                smtp.login(user = user, password=password)
+                smtp.sendmail(from_addr=user, to_addrs=to_addrs, msg=msg.as_string())
+                st.success("邮件发送成功！")
+
 
 
 
