@@ -249,34 +249,6 @@ def custom_invoice():
                                         unsafe_allow_html=True)
 
 
-                            zip_file = zipfile.ZipFile(r'C:\Users\fuqin\Desktop\file_name.zip', 'w')
-                            zip_file.write('sample.xlsx')
-
-                            with open("file_name.zip", "rb") as fp:
-                                btn = st.download_button(
-                                    label="Download ZIP",
-                                    data=fp,
-                                    file_name="file_name.zip",
-                                    mime="application/zip"
-                                )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
