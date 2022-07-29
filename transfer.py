@@ -1,22 +1,19 @@
 import base64
 import zipfile
-from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.chart import PieChart, Reference, Series
-import pandas as pd
-import streamlit as st
-import pandas as pd
 import pandas as pd
 from io import BytesIO
 import streamlit as st
 from shutil import copyfile
 import os
+from openpyxl import load_workbook, Workbook
+from openpyxl.cel import MergedCell
 import pandas as pd
 from openpyxl.styles import Alignment
 from openpyxl.styles.borders import Border, Side
 import requests
 import time
-from bs4 import BeautifulSoup
 from datetime import date
 import requests
 import random
