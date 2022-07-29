@@ -13,6 +13,7 @@ from shutil import copyfile
 import os
 from openpyxl import load_workbook, Workbook
 from openpyxl.cell import MergedCell
+from tkinter import filedialog
 import pandas as pd
 from openpyxl.styles import Alignment
 from openpyxl.styles.borders import Border, Side
@@ -28,7 +29,9 @@ import numpy as np
 from PIL import Image
 import xlsxwriter
 import warnings
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 def intro():
     import streamlit as st
@@ -225,9 +228,10 @@ def custom_invoice():
                             city = datainvoice_vat["城市"].tolist()[0]
                             county_2_chiffre = datainvoice_vat["国家代码"].tolist()[0]
                             county_complet = datainvoice_vat["国家全称"].tolist()[0]
-                            adresse_importer_complet = adresse + " ," + str(code_postal) + " ," + city + " ," + str(county_complet)
+                            adresse_importer_complet = adresse + " ," + str(code_postal) + " ," + city + " ," + str(
+                                county_complet)
 
-                            #建立分单文件夹
+                            # 建立分单文件夹
 
                             wb = Workbook()
                             ws = wb.active
@@ -242,27 +246,22 @@ def custom_invoice():
                                 bin_str = base64.b64encode(data).decode()
                                 href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">点击下载 {file_label}</a>'
                                 return href
+
                             file_path = 'sample.xlsx'
                             file_label = '测试文件'
                             st.markdown(get_binary_file_downloader_html(file_path, file_label),
                                         unsafe_allow_html=True)
-                            
-                            
-                            zip_file = zipfile.ZipFile(r'C:\Users\fuqin\Desktop\file_name.zip', 'w')
+
+                            zip_file = zipfile.ZipFile(r'file_name.zip', 'w')
                             zip_file.write('sample.xlsx')
-
-                            with open("file_name.zip", "rb") as fp:
-                                btn = st.download_button(
-                                    label="Download ZIP",
-                                    data=fp,
-                                    file_name="file_name.zip",
-                                    mime="application/zip"
-                                )
-
-
-
-
-
+                            title = 'file_name'
+                            with open("file_name.zip", "rb") as f:
+                                bytes_read = f.read()
+                                b64 = base64.b64encode(bytes_read).decode()
+                                href = f'<a href="data:file/zip;base64,{b64}" download=\'{title}.zip\'>\
+                                        Click to download\
+                                    </a>'
+                            st.markdown(href, unsafe_allow_html=True)
 
 def mapping_demo():
     import streamlit as st
