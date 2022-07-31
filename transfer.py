@@ -755,8 +755,7 @@ def air_pick_up():
             # 抄送人显示，不起实际作用
             msg["Cc"] = cc_show
             msg.attach(MIMEText(html_msg, "html", "utf-8"))
-            user = 'fuqing.yuan@smdg.eu'
-            password = 'Beijing2008'
+
             with SMTP_SSL(host="smtp.exmail.qq.com", port=465) as smtp:
                 smtp.login(user = user, password=password)
                 smtp.sendmail(from_addr=user, to_addrs=to_addrs, msg=msg.as_string())
