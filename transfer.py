@@ -163,7 +163,7 @@ def custom_invoice():
                     st.write(" ###### 请根据不同的业务，请选择对应的清关行：")
                     option = st.selectbox(
                         '',
-                        ('SMDG Logistics SRL', 'Alando', 'Cacesa', 'Flying', 'ECLL'))
+                        ('SMDG Logistics SRL'))
                 with col2:
                     template = st.file_uploader("上传对应清关模板")
                 if st.button('生成清关材料👈'):
@@ -199,7 +199,7 @@ def custom_invoice():
                         st.write(':punch: 请重新选择清关行或者上传清关模板')
                     else:
                         st.write(template.name)
-                        if option == "SMDG Logistics SRL":
+                        if option == "33":
                             st.write(" - 感谢您的信任，SMDG 正在筹备清关资质，预计2023年年初可以开始独立自主的清关业务")
                             st.write(" - 进一步消息请联系 邮箱 ： info@smdg.eu")
                             st.write(" - :pray:请重新选择清关行. 为带来不便, 深感抱歉")
@@ -212,7 +212,7 @@ def custom_invoice():
                         elif option == "ECLL":
                             st.write(" - 清关材料完善中...")
                             st.write(" - :pray:为带来不便, 深感抱歉")
-                        elif option == "Alando":
+                        elif option == "SMDG Logistics SRL":
                             zip_file_name = str(lta) + 'CI+PL+Manifest.zip'
                             zip_file = zipfile.ZipFile(zip_file_name, 'w')
                             dic_lta = []
