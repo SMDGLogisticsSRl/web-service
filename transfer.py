@@ -26,7 +26,12 @@ from smtplib import SMTP_SSL
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+import requests
+import time
+from bs4 import BeautifulSoup
+from datetime import date
 
+today = date.today()
 import pandas as pd
 
 import warnings
@@ -36,6 +41,47 @@ align = Alignment(horizontal='left', vertical='center')
 side = Side(style='thin', color='000000')
 border = Border(top=side, bottom=side, left=side, right=side)
 date_now = time.strftime("%d/%m/%Y", time.localtime())
+
+
+def translate_eng_cn(query):
+    # Set your own appid/appkey.
+    appid = '20220629001259722'
+    appkey = 'vkooiwx4xLqOl9C8NjvW'
+    # For list of language codes, please refer to `https://api.fanyi.baidu.com/doc/21`
+    from_lang = 'en'
+    to_lang = 'zh'
+    endpoint = 'http://api.fanyi.baidu.com'
+    path = '/api/trans/vip/translate'
+    url = endpoint + path
+
+    # Generate salt and sign
+    def make_md5(s, encoding='utf-8'):
+        return md5(s.encode(encoding)).hexdigest()
+
+    salt = random.randint(32768, 65536)
+    sign = make_md5(appid + query + str(salt) + appkey)
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    payload = {'appid': appid, 'q': query, 'from': from_lang, 'to': to_lang, 'salt': salt, 'sign': sign}
+    r = requests.post(url, params=payload, headers=headers)
+    result = r.json()
+    description_en_chinois = result['trans_result'][0]['dst']
+    return description_en_chinois
+
+
+def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):  # 海关邮件正文
+    global dfges
+    dfges = pd.DataFrame([["MTD De Depart", handler],
+                          ["MTD D'Arrivee", date_noa],
+                          ["Representant douane", "Alando"],
+                          ["La date du jour (du transfert)", date_pick_up],
+                          ["La date de MDT (Handler de départ)", date_pick_up],
+                          ["Lieu de Presentation", "Alando"],
+                          ["Le numéro de colis (tracking)", lta],
+                          ["L’identification de la marchandise", "/"],
+                          ["Le colisage (nombre de colis)", str(pcs) + " PCS"],
+                          ["Le kG", str(kg) + " KG"]],
+                         columns=['DESCRIPTION', 'INFORMATION'])
+    return dfges
 
 
 def intro():
@@ -163,7 +209,7 @@ def custom_invoice():
                     st.write(" ###### 请根据不同的业务，请选择对应的清关行：")
                     option = st.selectbox(
                         '',
-                        ('SMDG Logistics SRL',''))
+                        ('SMDG Logistics SRL', 'Alando', 'Cacesa', 'Flying', 'ECLL'))
                 with col2:
                     template = st.file_uploader("上传对应清关模板")
                 if st.button('生成清关材料👈'):
@@ -199,7 +245,7 @@ def custom_invoice():
                         st.write(':punch: 请重新选择清关行或者上传清关模板')
                     else:
                         st.write(template.name)
-                        if option == "33":
+                        if option == "SMDG Logistics SRL":
                             st.write(" - 感谢您的信任，SMDG 正在筹备清关资质，预计2023年年初可以开始独立自主的清关业务")
                             st.write(" - 进一步消息请联系 邮箱 ： info@smdg.eu")
                             st.write(" - :pray:请重新选择清关行. 为带来不便, 深感抱歉")
@@ -212,7 +258,7 @@ def custom_invoice():
                         elif option == "ECLL":
                             st.write(" - 清关材料完善中...")
                             st.write(" - :pray:为带来不便, 深感抱歉")
-                        elif option == "SMDG Logistics SRL":
+                        elif option == "Alando":
                             zip_file_name = str(lta) + 'CI+PL+Manifest.zip'
                             zip_file = zipfile.ZipFile(zip_file_name, 'w')
                             dic_lta = []
@@ -542,12 +588,54 @@ def custom_invoice():
                                           "申报金额": datainvoice["申报总价"].sum()}
                             dic_lta.append(dic_resume)
                             df_lta = pd.DataFrame(list(dic_lta))
-                            df_lta_name =  lta + " 税号信息总结.xlsx"
+                            df_lta_name = lta + " 税号信息总结.xlsx"
                             df_lta.to_excel(df_lta_name, sheet_name='税号信息总结', index=False)
                             file_path = df_lta_name
                             file_label = df_lta_name
                             st.markdown(get_binary_file_downloader_html(file_path, file_label),
                                         unsafe_allow_html=True)
+
+
+def declaration_product(product):
+    payload = {"includeUK": "false",
+               "lang": "CN",
+               "partner": "CN",
+               "product": product,
+               "years": '2021'}
+    headers = {'User-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                             'Chrome/102.0.0.0 Safari/537.36',
+               'Cookie': ''}
+    r = requests.get(
+        'https://webgate.ec.europa.eu/flows/public/v1/stats?', params=payload, headers=headers)
+    list_value = r.json()['rows']
+    importValue_total, importQuantity_total = 0, 0
+    for value in list_value:
+        country = value['country']
+        importValue = value['samples']['2021']['importValue']
+        if len(str(importValue).split(".")[-1]) == 3:
+            importValue = int(str(importValue).replace(".", ""))
+        elif len(str(importValue).split(".")[-1]) == 2:
+            importValue = int(str(importValue).replace(".", "")) * 10
+        elif len(str(importValue).split(".")[-1]) == 1:
+            importValue = int(str(importValue).replace(".", "")) * 100
+
+        importQuantity = value['samples']['2021']['importQuantity']
+        if len(str(importQuantity).split(".")[-1]) == 3:
+            importQuantity = int(str(importQuantity).replace(".", ""))
+        elif len(str(importQuantity).split(".")[-1]) == 2:
+            importQuantity = int(str(importQuantity).replace(".", "")) * 10
+        elif len(str(importQuantity).split(".")[-1]) == 1:
+            importQuantity = int(str(importQuantity).replace(".", "")) * 100
+
+        importValue_total, importQuantity_total = \
+            importValue_total + importValue, importQuantity_total + importQuantity
+    country = "EURO 27"
+    if importQuantity_total == 0:
+        import_kg_total = 0
+    else:
+        import_kg_total = round(importValue_total / importQuantity_total, 2)
+    return import_kg_total
+
 
 def Merge_cells(ws, target_list, start_row, col):  # 合并单元格
     '''
@@ -569,95 +657,205 @@ def Merge_cells(ws, target_list, start_row, col):  # 合并单元格
             ws.merge_cells(col + str(start + start_row) + ":" + col + str(end + start_row))
 
 
-def mapping_demo():
+def decision(a):
+    if (len(str(a)) == 0):
+        return ''
+    elif (a >= 0):
+        return '无'
+    elif a < 0:
+        return '有'
+
+
+def get_invoicedate(source):
+    writer_1 = pd.ExcelFile(source)
+    c = writer_1.sheet_names
+    datainvoice = writer_1.parse(c[0])
+    datainvoice = datainvoice.dropna(subset=["货箱编号"])
+    # 已有产品申报单价
+    datainvoice['产品申报单价'] = datainvoice['产品申报单价'].apply(lambda x: float(x))
+    datainvoice['产品申报数量'] = datainvoice['产品申报数量'].apply(lambda x: int(x))
+    datainvoice['货箱重量(KG)'] = datainvoice['货箱重量(KG)'].apply(lambda x: float(x))
+    datainvoice['跟踪号'] = datainvoice['跟踪号'].apply(lambda x: str(x).split(".")[0])
+    datainvoice['产品海关编码'] = datainvoice['产品海关编码'].apply(lambda x: str(x)[:10])
+    datainvoice['产品海关编码'] = datainvoice['产品海关编码'].apply(lambda x: int(x))
+    datainvoice['申报总价'] = datainvoice['产品申报单价'] * datainvoice['产品申报数量']
+
+    datainvoice['毛重比例'] = datainvoice['货箱重量(KG)'] / datainvoice['货箱重量(KG)'].sum()
+    datainvoice['包裹净重'] = datainvoice['货箱重量(KG)'] - len(set(datainvoice['货箱编号'].tolist())) * 1 * datainvoice['毛重比例']
+    datainvoice['产品净重'] = ((datainvoice['包裹净重'] / datainvoice['产品申报数量']) - 0.005).round(2)
+    datainvoice['包裹净重'] = round(datainvoice['产品净重'] * datainvoice['产品申报数量'], 2)
+
+    datainvoice['箱数'] = datainvoice['货箱编号']  # 先等于运单号，然后在调整
+    datainvoice['每公斤价值'] = round(datainvoice['申报总价'] / datainvoice['货箱重量(KG)'], 2)  # 先等于运单号，然后在调整
+    datainvoice['产品英文品名'] = datainvoice['产品英文品名']
+    datainvoice['产品中文品名'] = datainvoice['产品中文品名']
+    datainvoice = datainvoice.sort_values("货箱编号")
+    datainvoice = datainvoice.fillna("")
+    return datainvoice
+
+
+def study_invoice(data_hscode, source):
+    today = date.today()
+    years = 2021
+    datainvoice = get_invoicedate(source)
+    df_hscode_invoice = datainvoice[
+        ["运单号", "申报总价", "产品海关编码", "每公斤价值", "产品英文品名", "产品中文品名"]].drop_duplicates().sort_values("产品海关编码")
+    df_hscode_analyse = pd.merge(df_hscode_invoice, data_hscode, left_on="产品海关编码", right_on="hscode", how='left')
+    list_hscode_no_info = set(df_hscode_analyse['产品海关编码'].loc[df_hscode_analyse['hscode'].isna()].tolist())
+    if len(list_hscode_no_info) == 0:
+        pass
+    else:
+        list_o = []
+        hscode_no_exsite = []
+        n = 0
+        print("共计%s个海关码不再数据库，需进行海关网站抓取" % (len(list_hscode_no_info)))
+        print("-------------------------")
+        for hscode_on_info in list_hscode_no_info:
+            n = n + 1
+            print("正在提取%s个海关码 :" % (n), hscode_on_info)
+            try:
+                description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
+                description_en_chinois = translate_eng_cn(description_hscode)
+                product = str(hscode_on_info)[:8]
+                import_kg_total = declaration_product(product)
+                a = {'hscode': hscode_on_info, 'Duty': duty, 'import_euro_kg': import_kg_total,
+                     'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
+                     'description_en_chinois': description_en_chinois,
+                     'date_search': today, 'lien': ''}
+                list_o.append(a)
+            except:
+                b = {'hscode': hscode_on_info, 'Statue': "未找到，人工核实"}
+                hscode_no_exsite.append(b)
+                print("****************************未找到海关码  %s   ，请核实" % (hscode_on_info))
+        df_no_existe = pd.DataFrame(list(hscode_no_exsite))
+        df_hscode_insert = pd.DataFrame(list(list_o))
+        data_hscode = data_hscode.append(df_hscode_insert, ignore_index=True)
+    df_hscode_analyse = pd.merge(df_hscode_invoice, data_hscode, left_on="产品海关编码", right_on="hscode", how='left')
+    df_hscode_analyse["差值"] = df_hscode_analyse["每公斤价值"] - df_hscode_analyse["import_euro_kg"]
+    df_hscode_analyse["低报风险"] = df_hscode_analyse['差值'].apply(decision)
+    df_antidumping = df_hscode_analyse[df_hscode_analyse["anti-dumping"] == "anti-dumping"]
+    df_low_value = df_hscode_analyse[df_hscode_analyse["低报风险"] == "有"]
+    table_df_low_value = pd.pivot_table(df_low_value, values=['import_euro_kg', '每公斤价值', '差值'],
+                                        index=['产品海关编码', '低报风险', '产品英文品名', '产品中文品名'],
+                                        aggfunc={'import_euro_kg': np.mean,
+                                                 '每公斤价值': np.mean,
+                                                 '差值': np.mean})
+    table = pd.pivot_table(df_hscode_analyse, values=['import_euro_kg', '每公斤价值'],
+                           index=['产品海关编码', 'description_en_chinois', '产品中文品名'],
+                           aggfunc={'import_euro_kg': np.mean,
+                                    '每公斤价值': np.mean})
+    with pd.ExcelWriter("清关文件海关码分析结果.xlsx", engine="openpyxl") as writer:
+        df_hscode_analyse.to_excel(writer, sheet_name='申报信息总结', index=False)
+        table.to_excel(writer, sheet_name='透视表格')
+        try:
+            df_no_existe.to_excel(writer, sheet_name='海关码不存在', index=False)
+        except:
+            pass
+        df_antidumping.to_excel(writer, sheet_name='反倾销', index=False)
+        try:
+            table_df_low_value.to_excel(writer, sheet_name='低报风险')
+        except:
+            pass
+        try:
+            df_hscode_insert.to_excel(writer, sheet_name='打包发给米西', index=False)
+        except:
+            pass
+
+    def get_binary_file_downloader_html(bin_file, file_label='File'):
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        bin_str = base64.b64encode(data).decode()
+        href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">点击下载 {file_label}</a>'
+        return href
+
+    file_path = "清关文件海关码分析结果.xlsx"
+    file_label = "清关文件海关码分析结果"
+    st.markdown(get_binary_file_downloader_html(file_path, file_label),
+                unsafe_allow_html=True)
+
+
+def hs_code():
     import streamlit as st
     import pandas as pd
     import pydeck as pdk
     from urllib.error import URLError
-    st.markdown("生成" & f"# {list(page_names_to_funcs.keys())[2]}")
+    st.markdown(f"# SMDG{list(page_names_to_funcs.keys())[2]}" + "智能化服务")
+
     st.write(
-        """ 在这里您可以通过上传清关资料线上生成相关的CI和PL """
+        """ 在这里您可以获得不一样的服务 """
     )
+    option = st.selectbox("请选择海关码服务", ["", "海关码查询服务", "清关数据检查", "税金预估"])
+    if option == "海关码查询服务":
+        hscodes = st.text_input("请输入海关码：备注海海关码之间已 ' , ' 隔开")
+        if len(hscodes) != 0:
+            hscodes = hscodes.replace("，", ",")
+            hscodes = list(set(str(hscodes).split(",")))
+            st.text("查询：" + str(hscodes))
+            for hscode in hscodes:
+                a = 5
+                if a == 5:
+                    dic = []
+                    url = "https://eservices.minfin.fgov.be/extTariffBrowser/Measure?cnCode=%s&country=29422&trade=0&cssfile=tarbro" \
+                          "&date=%s&lang=EN&page=1" % (
+                              hscode, today)
+                    headers = {
+                        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                      'Chrome/76.0.3809.132 Safari/537.36'}
+                    res = requests.get(url, headers=headers)
+                    soup = BeautifulSoup(res.text, 'html.parser')
+                    hscode = soup.find('span', class_="smaller-title").text.replace(" ", "")
+                    description_hscode = soup.find('ul', class_="nostyle").getText().replace('\n', '').replace(
+                        '                                   ', ' /')
+                    footnote = soup.find('table', class_="table-nopadding").getText().replace('\n', '').strip().replace(
+                        "Footnotes:",
+                        "")
+                    supplementary_unit = soup.find('table', class_="table-nopadding bottom-aligned").getText().replace(
+                        '\n',
+                        '').strip().replace(
+                        "Supplementary unit:", "")
+                    tables = soup.find_all('div', class_="meas-header")
+                    for table in tables:
+                        table_infos = table.getText().split("\n")
+                        type_table = table_infos[0]  # 表格类型
+                        table_infos_sorts = table_infos[19:]
+                        nb_ligne = len(table_infos_sorts) / 20
+                        for x in range(int(nb_ligne)):
+                            Geographical_area = table_infos_sorts[20 * x + 0] + "  " + table_infos_sorts[20 * x + 1]
+                            Measure_type = table_infos_sorts[20 * x + 2] + "  " + table_infos_sorts[20 * x + 3]
+                            Tariff = table_infos_sorts[20 * x + 4] + "  " + table_infos_sorts[20 * x + 5]
+                            dic_0 = {"type_table": type_table,
+                                     "Measure_type": Measure_type,
+                                     "Tariff": Tariff,
+                                     "Geographical_area": Geographical_area, }
+                            dic.append(dic_0)
+                    pd_hscode_no_info = pd.DataFrame(list(dic))
+                    if "CN - China  " in pd_hscode_no_info["Geographical_area"].tolist():
+                        anti_dumping = "anti-dumping"
+                    else:
+                        anti_dumping = "-"
+                    duty = pd_hscode_no_info["Tariff"].loc[(pd_hscode_no_info["type_table"] == "Tariff measures") & (
+                            pd_hscode_no_info["Measure_type"] == "Third country duty          ")].tolist()[0]
+                    description_en_chinois = translate_eng_cn(description_hscode)
+                    import_kg_total = declaration_product(hscode[:8])
+                    df_hscode = pd.DataFrame([["海关码", hscode],
+                                              ["海关关税", duty],
+                                              ["反倾销", anti_dumping],
+                                              ["2021申报", str(import_kg_total) + " €/KG"],
+                                              ["英文解释", description_hscode],
+                                              ["中文品名", description_en_chinois],
+                                              ["补充单元", supplementary_unit],
+                                              ["脚注", footnote]],
+                                             columns=['DESCRIPTION', 'INFORMATION'])
+                    st.table(df_hscode)
+    elif option == "清关数据检查":
+        source = st.file_uploader("上传清关资料", type=(["xlsx", "xls"]))
+        path = "https://raw.githubusercontent.com/SMDGLogisticsSRl/web-service/70f75f3da2b92a37b292bed7ff2f9ed967ea10ec/hscode_database.txt"
+        data_hscode = pd.read_table(path, sep='\t')
+        if source is not None:
+            line_resultat = study_invoice(data_hscode, source)
 
-    @st.cache
-    def from_data_file(filename):
-        url = (
-                "http://raw.githubusercontent.com/streamlit/"
-                "example-data/master/hello/v1/%s" % filename
-        )
-        return pd.read_json(url)
 
-    try:
-        ALL_LAYERS = {
-            "Bike Rentals": pdk.Layer(
-                "HexagonLayer",
-                data=from_data_file("bike_rental_stats.json"),
-                get_position=["lon", "lat"],
-                radius=200,
-                elevation_scale=4,
-                elevation_range=[0, 1000],
-                extruded=True,
-            ),
-            "Bart Stop Exits": pdk.Layer(
-                "ScatterplotLayer",
-                data=from_data_file("bart_stop_stats.json"),
-                get_position=["lon", "lat"],
-                get_color=[200, 30, 0, 160],
-                get_radius="[exits]",
-                radius_scale=0.05,
-            ),
-            "Bart Stop Names": pdk.Layer(
-                "TextLayer",
-                data=from_data_file("bart_stop_stats.json"),
-                get_position=["lon", "lat"],
-                get_text="name",
-                get_color=[0, 0, 0, 200],
-                get_size=15,
-                get_alignment_baseline="'bottom'",
-            ),
-            "Outbound Flow": pdk.Layer(
-                "ArcLayer",
-                data=from_data_file("bart_path_stats.json"),
-                get_source_position=["lon", "lat"],
-                get_target_position=["lon2", "lat2"],
-                get_source_color=[200, 30, 0, 160],
-                get_target_color=[200, 30, 0, 160],
-                auto_highlight=True,
-                width_scale=0.0001,
-                get_width="outbound",
-                width_min_pixels=3,
-                width_max_pixels=30,
-            ),
-        }
-        st.sidebar.markdown("### Map Layers")
-        selected_layers = [
-            layer
-            for layer_name, layer in ALL_LAYERS.items()
-            if st.sidebar.checkbox(layer_name, True)
-        ]
-        if selected_layers:
-            st.pydeck_chart(
-                pdk.Deck(
-                    map_style="mapbox://styles/mapbox/light-v9",
-                    initial_view_state={
-                        "latitude": 37.76,
-                        "longitude": -122.4,
-                        "zoom": 11,
-                        "pitch": 50,
-                    },
-                    layers=selected_layers,
-                )
-            )
-        else:
-            st.error("Please choose at least one layer above.")
-    except URLError as e:
-        st.error(
-            """
-            **This demo requires internet access.**
-            Connection error: %s
-        """
-            % e.reason
-        )
+3
 
 
 def air_pick_up():
@@ -675,72 +873,65 @@ def air_pick_up():
         \n 1. 发邮件给指定海关通知提货
              \n 2. 卡车公司订单
              \n 3. 货站信息""")
-    options = st.selectbox("请选择服务", ["","Transfert", "Truck Order", "Loading Instruction"])
+    options = st.selectbox("请选择服务", ["", "Transfert", "Truck Order", "Loading Instruction"])
     if options == "Transfert":
         st.write("准备邮件给海关")
-        col1, col2, col3 = st.columns([5, 5, 5])
+        col1, col2, col3, col4 = st.columns([5, 5, 5, 5])
         with col1:
-            handler = st.selectbox("选择货站",('','AVIA', 'SWP', 'WFS', 'LACHS', 'BAS'))
+            handler = st.selectbox("选择货站", ('', 'AVIA', 'SWP', 'WFS', 'LACHS', 'BAS'))
             lta = st.text_input("输入提单号：")
-            pcs = st.text_input("输入包裹数量：")
+            xuhao = st.text_input("输入邮件序号：")
+
         with col2:
-            date_noa_1 = st.date_input("输入NOA日期：")
-            date_pick_up_1 = st.date_input("输入提货日期：")
+            pcs = st.text_input("输入包裹数量：")
             kg = st.text_input("输入包裹重量：")
+
         with col3:
+            date_noa_1 = st.date_input("输入NOA日期：")
             date_noa_2 = st.time_input("输入NOA时间：")
+
+        with col4:
+            date_pick_up_1 = st.date_input("输入提e货日期：")
             date_pick_up_2 = st.time_input("输入提货时间：")
+
         if st.button("准备并发送邮件"):
-            date_noa  = str(date_noa_1) + " " + str(date_noa_2)
+            date_noa = str(date_noa_1) + " " + str(date_noa_2)
             date_pick_up = str(date_pick_up_1) + " " + str(date_pick_up_2)
-            def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):
-                global dfges
-                dfges = pd.DataFrame([["MTD De Depart", handler],
-                                      ["MTD D'Arrivee", date_noa],
-                                      ["Representant douane", "Alando"],
-                                      ["La date du jour (du transfert)", date_pick_up],
-                                      ["La date de MDT (Handler de départ)", date_pick_up],
-                                      ["Lieu de Presentation", "Alando"],
-                                      ["Le numéro de colis (tracking)", lta],
-                                      ["L’identification de la marchandise", "/"],
-                                      ["Le colisage (nombre de colis)", str(pcs) + " PCS"],
-                                      ["Le kG", str(kg) + " KG"]],
-                                     columns=['DESCRIPTION', 'INFORMATION'])
-                return dfges
+
             dfges = get_data(handler, date_noa, date_pick_up, lta, pcs, kg)
             st.write("查看邮件内容模板")
             to_addrs = "fuqing.yuan@smdg.eu"
-            title="< N°%s > notification d’entrée en installation de stockage temporaire (TSD)(%s - SMDG)_LTA: %s " \
-                  "TRANSFERT" %("00007",handler,lta)
-            st.write("收件人：",to_addrs)
+            title = "< N°%s > notification d’entrée en installation de stockage temporaire (TSD)(%s - SMDG)_LTA: %s " \
+                    "TRANSFERT" % (xuhao, handler, lta)
+            st.write("收件人：", to_addrs)
             st.write("邮件标题：", title)
             st.write(dfges)
-
             html = f"""
                            <!DOCTYPE html>
                            <head>
                            <style>
-                           tr:nth-child(even) {{
-                           background-color: #f2f2f2;
-                           }}
+                                tr:nth-child(even) {{
+                                background-color: #f2f2f2;
+                                }}
                            </style>
                            </head>
                            <td>
-                           Bonjour,Madame, Monsieur:
+                                Bonjour,Madame, Monsieur:
                            </td>
                            <ul>
-                           L’envoi fera objet d’un transfert manifest .
+                                L’envoi fera objet d’un transfert manifest .
                            </ul>
                            <body>
-                           {dfges.to_html(index=False, escape=False)}
+                                {dfges.to_html(index=False, escape=False)}
                            <p>
-                           l'Equipe de SMDG Logistics SRL  .
+                                l'Equipe de SMDG Logistics SRL  .
                            </p>
                            <li>
-                           Mes salutations distinguées 
+                                Mes salutations distinguées 
                            </li>   
                            </body>
                            </html>"""
+
             html_msg = html
             msg = email.mime.multipart.MIMEMultipart()
             sender_show = 'fuqing.yuan@smdg.eu'
@@ -757,30 +948,9 @@ def air_pick_up():
             msg.attach(MIMEText(html_msg, "html", "utf-8"))
 
             with SMTP_SSL(host="smtp.exmail.qq.com", port=465) as smtp:
-                smtp.login(user = user, password=password)
+                smtp.login(user=user, password=password)
                 smtp.sendmail(from_addr=user, to_addrs=to_addrs, msg=msg.as_string())
                 st.success("邮件发送成功！")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     elif options == "Truck Order":
         st.write("发邮件卡车订单")
@@ -788,11 +958,10 @@ def air_pick_up():
         st.write("发邮件卡车订单")
 
 
-
 page_names_to_funcs = {
     "公司介绍": intro,
     "清关资料": custom_invoice,
-    "海关码": mapping_demo,
+    "海关码": hs_code,
     "空运提货": air_pick_up
 }
 
