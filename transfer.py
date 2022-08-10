@@ -200,7 +200,7 @@ def custom_invoice():
                     st.write(" ###### 请根据不同的业务，请选择对应的清关行：")
                     option = st.selectbox(
                         '',
-                        'SMDG Logistics SRL','')
+                        ('','SMDG Logistics SRL',''))
                 with col2:
                     template = st.file_uploader("上传对应清关模板")
                 if st.button('生成清关材料👈'):
