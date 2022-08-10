@@ -699,25 +699,36 @@ def study_invoice(data_hscode, source):
         list_o = []
         hscode_no_exsite = []
         n = 0
-        print("共计%s个海关码不再数据库，需进行海关网站抓取" % (len(list_hscode_no_info)))
+        st.write("共计%s个海关码不再数据库，需进行海关网站抓取" % (len(list_hscode_no_info)))
         print("-------------------------")
         for hscode_on_info in list_hscode_no_info:
+            hscode_on_info = str(hscode_on_info)[:10]
             n = n + 1
-            print("正在提取%s个海关码 :" % (n), hscode_on_info)
+            st.write("正在提取%s个海关码 :" % (n), hscode_on_info)
+            description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
+            description_en_chinois = ""  # translate_eng_cn(description_hscode)
+            product = str(hscode_on_info)[:8]
+            import_kg_total = declaration_product(product)
+            a = {'hscode': hscode_on_info, 'Duty': duty, 'import_euro_kg': import_kg_total,
+                 'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
+                 'description_en_chinois': description_en_chinois,
+                 'date_search': today, 'lien': ''}
+            list_o.append(a)
             try:
                 description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
-                description_en_chinois = translate_eng_cn(description_hscode)
+                description_en_chinois = "" #translate_eng_cn(description_hscode)
                 product = str(hscode_on_info)[:8]
                 import_kg_total = declaration_product(product)
                 a = {'hscode': hscode_on_info, 'Duty': duty, 'import_euro_kg': import_kg_total,
                      'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
                      'description_en_chinois': description_en_chinois,
                      'date_search': today, 'lien': ''}
+
                 list_o.append(a)
             except:
                 b = {'hscode': hscode_on_info, 'Statue': "未找到，人工核实"}
                 hscode_no_exsite.append(b)
-                print("****************************未找到海关码  %s   ，请核实" % (hscode_on_info))
+                st.write("****************************未找到海关码  %s   ，请核实" % (hscode_on_info))
         df_no_existe = pd.DataFrame(list(hscode_no_exsite))
         df_hscode_insert = pd.DataFrame(list(list_o))
         data_hscode = data_hscode.append(df_hscode_insert, ignore_index=True)
@@ -826,7 +837,7 @@ def hs_code():
                         anti_dumping = "-"
                     duty = pd_hscode_no_info["Tariff"].loc[(pd_hscode_no_info["type_table"] == "Tariff measures") & (
                             pd_hscode_no_info["Measure_type"] == "Third country duty          ")].tolist()[0]
-                    description_en_chinois = translate_eng_cn(description_hscode)
+                    description_en_chinois = ""# translate_eng_cn(description_hscode)
                     import_kg_total = declaration_product(hscode[:8])
                     df_hscode = pd.DataFrame([["海关码", hscode],
                                               ["海关关税", duty],
