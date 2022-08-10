@@ -30,18 +30,14 @@ import requests
 import time
 from bs4 import BeautifulSoup
 from datetime import date
-
 today = date.today()
 import pandas as pd
-
 import warnings
-
 warnings.simplefilter(action='ignore', category=FutureWarning)
 align = Alignment(horizontal='left', vertical='center')
 side = Side(style='thin', color='000000')
 border = Border(top=side, bottom=side, left=side, right=side)
 date_now = time.strftime("%d/%m/%Y", time.localtime())
-
 
 def translate_eng_cn(query):
     # Set your own appid/appkey.
@@ -53,11 +49,9 @@ def translate_eng_cn(query):
     endpoint = 'http://api.fanyi.baidu.com'
     path = '/api/trans/vip/translate'
     url = endpoint + path
-
     # Generate salt and sign
     def make_md5(s, encoding='utf-8'):
         return md5(s.encode(encoding)).hexdigest()
-
     salt = random.randint(32768, 65536)
     sign = make_md5(appid + query + str(salt) + appkey)
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
@@ -66,7 +60,6 @@ def translate_eng_cn(query):
     result = r.json()
     description_en_chinois = result['trans_result'][0]['dst']
     return description_en_chinois
-
 
 def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):  # 海关邮件正文
     global dfges
@@ -82,7 +75,6 @@ def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):  # 海关邮件正�
                           ["Le kG", str(kg) + " KG"]],
                          columns=['DESCRIPTION', 'INFORMATION'])
     return dfges
-
 
 def intro():
     import streamlit as st
@@ -108,7 +100,6 @@ def intro():
         - 邮箱 : info@smdg.eu
         - 地址 : Rue Louis Bleriot 5A 4460 Bierset Belgiumt
         """)
-
 
 def custom_invoice():
     import streamlit as st
@@ -165,13 +156,13 @@ def custom_invoice():
                 st.write(" - 请输入 提单总重, 包裹总数, 境内运费, 国际运费 (*为必填)")
                 col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
                 with col1:
-                    lta_officel_weight_kg = st.number_input("*请输入提单毛重 : ", min_value=0, max_value=1000000, key=int)
+                    lta_officel_weight_kg = st.number_input("*请输入提单毛重 : ", min_value=0, max_value=1000000, key=float)
                 with col2:
                     lta_officel_carton = st.number_input("*请输入提单包裹数量 : ", min_value=0, max_value=1000000, key=int)
                 with col3:
-                    transport_fee_interne = st.number_input("*请输入欧洲境内运费 :", min_value=0, max_value=1000000, key=int)
+                    transport_fee_interne = st.number_input("*请输入欧洲境内运费 :", min_value=0, max_value=1000000, key=float)
                 with col4:
-                    transport_fee_externe = st.number_input("请输入国际运费: ", min_value=0, max_value=1000000, key=int)
+                    transport_fee_externe = st.number_input("请输入国际运费: ", min_value=0, max_value=1000000, key=float)
 
                 datainvoice = pd.read_excel(custom_invoice_data)
                 datainvoice = datainvoice.dropna(subset=["货箱编号"])
@@ -201,7 +192,7 @@ def custom_invoice():
                     lta = ltas[0]
                 else:
                     lta = str(ltas)
-                kg_brut_total = datainvoice['货箱重量(KG)'].sum()
+                kg_brut_total = datainvoice['货箱重量(KG)'].sum().round(2)
                 carton_total = len(set(datainvoice['货箱编号'].tolist()))
 
                 col1, col2 = st.columns([5, 5])
@@ -209,7 +200,7 @@ def custom_invoice():
                     st.write(" ###### 请根据不同的业务，请选择对应的清关行：")
                     option = st.selectbox(
                         '',
-                        ('SMDG Logistics SRL', 'Alando', 'Cacesa', 'Flying', 'ECLL'))
+                        'SMDG Logistics SRL')
                 with col2:
                     template = st.file_uploader("上传对应清关模板")
                 if st.button('生成清关材料👈'):
@@ -245,7 +236,7 @@ def custom_invoice():
                         st.write(':punch: 请重新选择清关行或者上传清关模板')
                     else:
                         st.write(template.name)
-                        if option == "SMDG Logistics SRL":
+                        if option == "SMDG Logistics SRLL":
                             st.write(" - 感谢您的信任，SMDG 正在筹备清关资质，预计2023年年初可以开始独立自主的清关业务")
                             st.write(" - 进一步消息请联系 邮箱 ： info@smdg.eu")
                             st.write(" - :pray:请重新选择清关行. 为带来不便, 深感抱歉")
@@ -258,7 +249,7 @@ def custom_invoice():
                         elif option == "ECLL":
                             st.write(" - 清关材料完善中...")
                             st.write(" - :pray:为带来不便, 深感抱歉")
-                        elif option == "Alando":
+                        elif option == "SMDG Logistics SRL":
                             zip_file_name = str(lta) + 'CI+PL+Manifest.zip'
                             zip_file = zipfile.ZipFile(zip_file_name, 'w')
                             dic_lta = []
@@ -946,7 +937,8 @@ def air_pick_up():
             # 抄送人显示，不起实际作用
             msg["Cc"] = cc_show
             msg.attach(MIMEText(html_msg, "html", "utf-8"))
-
+            user = 'fuqing.yuan@smdg.eu'
+            password = 'Beijing2008'
             with SMTP_SSL(host="smtp.exmail.qq.com", port=465) as smtp:
                 smtp.login(user=user, password=password)
                 smtp.sendmail(from_addr=user, to_addrs=to_addrs, msg=msg.as_string())
