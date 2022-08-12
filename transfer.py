@@ -75,6 +75,48 @@ def get_data(handler, date_noa, date_pick_up, lta, pcs, kg):  # 海关邮件正�
                           ["Le kG", str(kg) + " KG"]],
                          columns=['DESCRIPTION', 'INFORMATION'])
     return dfges
+def extrait_hscode(hscode, today):
+    dic = []
+    url = "https://eservices.minfin.fgov.be/extTariffBrowser/Measure?cnCode=%s&country=29422&trade=0&cssfile=tarbro" \
+          "&date=%s&lang=EN&page=1" % (
+              hscode, today)
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/76.0.3809.132 Safari/537.36'}
+    res = requests.get(url, headers=headers)
+    soup = BeautifulSoup(res.text, 'html.parser')
+    hscode = soup.find('span', class_="smaller-title").text.replace(" ","")
+    description_hscode = soup.find('ul', class_="nostyle").getText().replace('\n', '').replace(
+        '                                   ', ' /')
+    footnote = soup.find('table', class_="table-nopadding").getText().replace('\n', '').strip().replace("Footnotes:",
+                                                                                                        "")
+    supplementary_unit = soup.find('table', class_="table-nopadding bottom-aligned").getText().replace('\n',
+                                                                                                       '').strip().replace(
+        "Supplementary unit:", "")
+    tables = soup.find_all('div', class_="meas-header")
+    for table in tables:
+        table_infos = table.getText().split("\n")
+        type_table = table_infos[0]  # 表格类型
+        table_infos_sorts = table_infos[19:]
+        nb_ligne = len(table_infos_sorts) / 20
+        for x in range(int(nb_ligne)):
+            Geographical_area = table_infos_sorts[20 * x + 0] + "  " + table_infos_sorts[20 * x + 1]
+            Measure_type = table_infos_sorts[20 * x + 2] + "  " + table_infos_sorts[20 * x + 3]
+            Tariff = table_infos_sorts[20 * x + 4] + "  " + table_infos_sorts[20 * x + 5]
+            dic_0 = {"type_table":type_table,
+                     "Measure_type":Measure_type,
+                     "Tariff":Tariff,
+            "Geographical_area": Geographical_area,}
+            dic.append(dic_0)
+    pd_hscode_no_info = pd.DataFrame(list(dic))
+    if "CN - China  " in pd_hscode_no_info["Geographical_area"].tolist():
+        anti_dumping = "anti-dumping"
+    else:
+        anti_dumping = ""
+    duty = pd_hscode_no_info["Tariff"].loc[(pd_hscode_no_info["type_table"]=="Tariff measures") & (pd_hscode_no_info["Measure_type"]=="Third country duty          ") ].tolist()[0]
+    return description_hscode,anti_dumping,duty
+
+
 
 def intro():
     import streamlit as st
@@ -705,15 +747,6 @@ def study_invoice(data_hscode, source):
             hscode_on_info = str(hscode_on_info)[:10]
             n = n + 1
             st.write("正在提取%s个海关码 :" % (n), hscode_on_info)
-            description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
-            description_en_chinois = ""  # translate_eng_cn(description_hscode)
-            product = str(hscode_on_info)[:8]
-            import_kg_total = declaration_product(product)
-            a = {'hscode': hscode_on_info, 'Duty': duty, 'import_euro_kg': import_kg_total,
-                 'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
-                 'description_en_chinois': description_en_chinois,
-                 'date_search': today, 'lien': ''}
-            list_o.append(a)
             try:
                 description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
                 description_en_chinois = "" #translate_eng_cn(description_hscode)
@@ -723,12 +756,14 @@ def study_invoice(data_hscode, source):
                      'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
                      'description_en_chinois': description_en_chinois,
                      'date_search': today, 'lien': ''}
-
                 list_o.append(a)
+                st.write("****************************海关码存在，已缓存  %s   ，" % (hscode_on_info))
+
             except:
                 b = {'hscode': hscode_on_info, 'Statue': "未找到，人工核实"}
                 hscode_no_exsite.append(b)
                 st.write("****************************未找到海关码  %s   ，请核实" % (hscode_on_info))
+
         df_no_existe = pd.DataFrame(list(hscode_no_exsite))
         df_hscode_insert = pd.DataFrame(list(list_o))
         data_hscode = data_hscode.append(df_hscode_insert, ignore_index=True)
