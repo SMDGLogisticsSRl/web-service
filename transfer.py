@@ -277,8 +277,8 @@ def custom_invoice():
                                 city = datainvoice_vat["城市"].tolist()[0]
                                 county_2_chiffre = datainvoice_vat["国家代码"].tolist()[0]
                                 county_complet = datainvoice_vat["国家全称"].tolist()[0]
-                                adresse_importer_complet = adresse + " ," + str(
-                                    code_postal) + " ," + city + " ," + str(
+                                adresse_importer_complet = str(adresse) + " ," + str(
+                                    code_postal) + " ," + str(city) + " ," + str(
                                     county_complet)
 
                                 # 填写文件
@@ -470,7 +470,7 @@ def custom_invoice():
                                                   Senderzipcode) + " " + str(Sendercountrycode),
                                               "Consignee": importer,
                                               "Adresse Consignee 1": adresse,
-                                              "Adresse Consignee 2": city + " " + code_postal + " " + county_complet,
+                                              "Adresse Consignee 2": str(city) + " " + str(code_postal) + " " + str(county_complet),
                                               "CBM": "",
                                               "Place of recepit": "",
                                               "Port of loading": "",
