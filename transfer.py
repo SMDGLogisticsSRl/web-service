@@ -223,6 +223,7 @@ def custom_invoice():
                 datainvoice['包裹净重'] = round(datainvoice['产品净重'] * datainvoice['产品申报数量'], 2)
                 datainvoice['箱数'] = datainvoice['货箱编号']  # 先等于运单号，然后在调整
                 datainvoice['每公斤价值'] = round(datainvoice['申报总价'] / datainvoice['货箱重量(KG)'], 2)  # 先等于运单号，然后在调整
+                value_total = datainvoice['申报总价'].sum()
                 datainvoice['产品英文品名'] = datainvoice['产品英文品名']
                 datainvoice['产品中文品名'] = datainvoice['产品中文品名']
                 datainvoice = datainvoice.sort_values("货箱编号")
@@ -246,6 +247,11 @@ def custom_invoice():
                 with col2:
                     template = st.file_uploader("上传对应清关模板")
                 if st.button('生成清关材料👈'):
+                    if value_total >= 50000:
+                        st.write(':+1:申报价值高于5万欧',value_total, "   Euros    ")
+                    else:
+                        st.write(':triumph:申报总价值可能过低', "   ---申报价值：", str(value_total), "   Euros   ")
+
                     if lta_officel_weight_kg == kg_brut_total:
                         st.write(':+1:重量相符')
                     else:
@@ -747,22 +753,25 @@ def study_invoice(data_hscode, source):
             hscode_on_info = str(hscode_on_info)[:10]
             n = n + 1
             st.write("正在提取%s个海关码 :" % (n), hscode_on_info)
-            try:
-                description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
-                description_en_chinois = "" #translate_eng_cn(description_hscode)
-                product = str(hscode_on_info)[:8]
-                import_kg_total = declaration_product(product)
-                a = {'hscode': hscode_on_info, 'Duty': duty, 'import_euro_kg': import_kg_total,
-                     'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
-                     'description_en_chinois': description_en_chinois,
-                     'date_search': today, 'lien': ''}
-                list_o.append(a)
-                st.write("****************************海关码存在，已缓存  %s   ，" % (hscode_on_info))
+            if len(str(hscode_on_info)) == 10:
+                try:
+                    description_hscode, anti_dumping, duty = extrait_hscode(hscode_on_info, today)
+                    description_en_chinois = "" #translate_eng_cn(description_hscode)
+                    product = str(hscode_on_info)[:8]
+                    import_kg_total = declaration_product(product)
+                    a = {'hscode': hscode_on_info, 'Duty': duty, 'import_euro_kg': import_kg_total,
+                         'anti_dumping': anti_dumping, 'description_hscode': description_hscode,
+                         'description_en_chinois': description_en_chinois,
+                         'date_search': today, 'lien': ''}
+                    list_o.append(a)
+                    st.write("****************************海关码存在，已缓存  %s   ，" % (hscode_on_info))
 
-            except:
-                b = {'hscode': hscode_on_info, 'Statue': "未找到，人工核实"}
-                hscode_no_exsite.append(b)
-                st.write("****************************未找到海关码  %s   ，请核实" % (hscode_on_info))
+                except:
+                    b = {'hscode': hscode_on_info, 'Statue': "未找到，人工核实"}
+                    hscode_no_exsite.append(b)
+                    st.write("****************************未找到海关码  %s   ，请核实" % (hscode_on_info))
+            else:
+                st.write("海关码为10位数，请补充完整")
 
         df_no_existe = pd.DataFrame(list(hscode_no_exsite))
         df_hscode_insert = pd.DataFrame(list(list_o))
@@ -873,7 +882,10 @@ def hs_code():
                     duty = pd_hscode_no_info["Tariff"].loc[(pd_hscode_no_info["type_table"] == "Tariff measures") & (
                             pd_hscode_no_info["Measure_type"] == "Third country duty          ")].tolist()[0]
                     description_en_chinois = ""# translate_eng_cn(description_hscode)
-                    import_kg_total = declaration_product(hscode[:8])
+                    try:
+                        import_kg_total = declaration_product(hscode[:8])
+                    except:
+                        import_kg_total = 1000000000
                     df_hscode = pd.DataFrame([["海关码", hscode],
                                               ["海关关税", duty],
                                               ["反倾销", anti_dumping],
