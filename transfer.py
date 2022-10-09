@@ -28,7 +28,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 import requests
 import time
-from bs4 import BeautifulSoup
 from datetime import date
 today = date.today()
 import pandas as pd
